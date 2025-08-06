@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Health Support Chat</title>
+    <link rel="stylesheet" href="/frontend/design.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-heart-pulse"></i>
+                    <h1>Mental Health Support</h1>
+                </div>
+                <p class="subtitle">A safe space to talk about your feelings</p>
+            </div>
+        </header>
+
+        <!-- Chat Container -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="bot-info">
+                    <div class="bot-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="bot-details">
+                        <h3>Your AI Companion</h3>
+                        <span class="status online">Online</span>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <button class="action-btn" id="clearChat" title="Clear conversation">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="action-btn" id="toggleTheme" title="Toggle theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div class="messages-container" id="messagesContainer">
+                <!-- Welcome Message -->
+                <div class="message bot-message">
+                    <div class="message-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="message-bubble">
+                            <p>Hello! I'm here to support you on your mental health journey. How are you feeling today? You can talk to me about anything - your thoughts, feelings, or any challenges you're facing. I'm here to listen and help.</p>
+                        </div>
+                        <div class="message-time">Just now</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea 
+                        id="messageInput" 
+                        placeholder="Type your message here..."
+                        rows="1"
+                        maxlength="500"
+                    ></textarea>
+                    <button id="sendButton" class="send-btn" disabled>
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="input-footer">
+                    <span class="char-count">0/500</span>
+                    <div class="quick-actions">
+                        <button class="quick-btn" data-action="stress">Stress Help</button>
+                        <button class="quick-btn" data-action="anxiety">Anxiety</button>
+                        <button class="quick-btn" data-action="depression">Depression</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Crisis Alert Modal -->
+        <div class="modal" id="crisisModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <i class="fas fa-exclamation-triangle crisis-icon"></i>
+                    <h3>Important Notice</h3>
+                </div>
+                <div class="modal-body">
+                    <p>If you're experiencing thoughts of self-harm or suicide, please reach out for immediate help:</p>
+                    <div class="crisis-contacts">
+                        <div class="contact-item">
+                            <strong>Bangladesh Crisis Helpline:</strong>
+                            <span>234378737537</span>
+                        </div>
+                        <div class="contact-item">
+                            <strong>Emergency Services:</strong>
+                            <span>999</span>
+                        </div>
+                    </div>
+                    <p class="crisis-message">You are not alone. There are people who care about you and want to help.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" id="closeCrisisModal">I understand</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="loading-indicator" id="loadingIndicator">
+            <div class="loading-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            <p>Your AI companion is thinking...</p>
+        </div>
+    </div>
+
+    <script>
+        // Session management
+        const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        let isTyping = false;
+
+        // DOM elements
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const crisisModal = document.getElementById('crisisModal');
+        const clearChatBtn = document.getElementById('clearChat');
+        const toggleThemeBtn = document.getElementById('toggleTheme');
+
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            
+            // Update character count
+            const charCount = this.value.length;
+            document.querySelector('.char-count').textContent = `${charCount}/500`;
+            
+            // Enable/disable send button
+            sendButton.disabled = charCount === 0;
+        });
+
+        // Send message
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || isTyping) return;
+
+            // Add user message
+            addMessage(message, 'user');
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            sendButton.disabled = true;
+            document.querySelector('.char-count').textContent = '0/500';
+
+            // Show loading
+            showLoading();
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        query: message
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Check for crisis response
+                if (data.response && data.response.includes('helpline')) {
+                    showCrisisModal();
+                }
+
+                // Add bot response
+                addMessage(data.response, 'bot');
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('I apologize, but I\'m having trouble connecting right now. Please try again in a moment.', 'bot');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Add message to chat
+        function addMessage(content, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            if (sender === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="message-content">
+                        <div class="message-bubble">
+                            <p>${escapeHtml(content)}</p>
+                        </div>
+                        <div class="message-time">${timestamp}</div>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="message-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="message-bubble">
+                            <p>${escapeHtml(content)}</p>
+                        </div>
+                        <div class="message-time">${timestamp}</div>
+                    </div>
+                `;
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showLoading() {
+            isTyping = true;
+            loadingIndicator.style.display = 'flex';
+            scrollToBottom();
+        }
+
+        function hideLoading() {
+            isTyping = false;
+            loadingIndicator.style.display = 'none';
+        }
+
+        function showCrisisModal() {
+            crisisModal.style.display = 'flex';
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Quick action buttons
+        document.querySelectorAll('.quick-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const action = this.dataset.action;
+                let message = '';
+                
+                switch(action) {
+                    case 'stress':
+                        message = 'I\'m feeling stressed and overwhelmed. Can you help me with some stress management techniques?';
+                        break;
+                    case 'anxiety':
+                        message = 'I\'m experiencing anxiety. What can I do to calm down?';
+                        break;
+                    case 'depression':
+                        message = 'I\'ve been feeling down and depressed lately. Can you help me?';
+                        break;
+                }
+                
+                messageInput.value = message;
+                messageInput.dispatchEvent(new Event('input'));
+            });
+        });
+
+        // Clear chat
+        clearChatBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear the conversation?')) {
+                const welcomeMessage = messagesContainer.querySelector('.bot-message');
+                messagesContainer.innerHTML = '';
+                if (welcomeMessage) {
+                    messagesContainer.appendChild(welcomeMessage);
+                }
+            }
+        });
+
+        // Toggle theme
+        toggleThemeBtn.addEventListener('click', function() {
+            document.body.classList.toggle('dark-theme');
+            const icon = this.querySelector('i');
+            if (document.body.classList.contains('dark-theme')) {
+                icon.className = 'fas fa-sun';
+            } else {
+                icon.className = 'fas fa-moon';
+            }
+        });
+
+        // Close crisis modal
+        document.getElementById('closeCrisisModal').addEventListener('click', function() {
+            crisisModal.style.display = 'none';
+        });
+
+        // Close modal when clicking outside
+        crisisModal.addEventListener('click', function(e) {
+            if (e.target === crisisModal) {
+                crisisModal.style.display = 'none';
+            }
+        });
+
+        // Initialize
+        scrollToBottom();
+    </script>
+</body>
+</html>
