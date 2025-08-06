@@ -2,9 +2,12 @@
 
 A compassionate AI-powered mental health support chatbot designed to provide emotional support, crisis intervention, and stress management guidance.
 
-## Demo
+## 🎬 Live Demo
 
-
+Demo 1: https://github.com/user-attachments/assets/3ff77f04-9608-40f5-8b0f-f2b66643e118
+Demo 2: https://github.com/user-attachments/assets/1bac61ac-e597-42ea-a564-a76903b0cf65
+Demo 3: https://github.com/user-attachments/assets/f630b177-1c77-40e1-b98a-e376c0119cec
+Demo 4: https://github.com/user-attachments/assets/fb8c57a8-cdd2-477d-a76a-5c04d0ba89f6
 
 ## 🌟 Features
 
@@ -38,8 +41,8 @@ A compassionate AI-powered mental health support chatbot designed to provide emo
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd Mental-Health-ChatBot
+   git clone https://github.com/Bayzid03/AI-Mental-Health-Chatbot/tree/main
+   cd AI-Mental-Health-ChatBot
    ```
 
 2. **Install dependencies**
